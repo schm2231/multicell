@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "Multicell: Focus Cell for Google Sheets",
+  "short_name": "Multicell",
+  "version": "0.1.0",
+  "description": "Highlights the row and column of your active cell or selection in Google Sheets. Toggle with one click or a shortcut.",
+  "permissions": ["storage"],
+  "background": { "service_worker": "src/background.js" },
+  "content_scripts": [
+    {
+      "matches": ["https://docs.google.com/spreadsheets/*"],
+      "js": ["src/content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "Multicell",
+    "default_popup": "src/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "commands": {
+    "toggle-focus": {
+      "suggested_key": { "default": "Alt+Shift+Q" },
+      "description": "Turn the focus highlight on or off"
+    },
+    "toggle-follow-selection": {
+      "description": "Switch between following the whole selection and only the active cell"
+    }
+  }
+}
