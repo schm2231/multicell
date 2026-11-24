@@ -32,6 +32,7 @@ Highlight the row and column of the selected cell in Google Sheets to make sprea
 
 ## Permission justifications (privacy tab)
 - **storage**: Saves the user's settings (on/off, follow selection, color, opacity) so they persist across tabs and restarts.
+- **scripting**: After the extension is updated, re-injects the content script into Google Sheets tabs that were already open, so the highlight keeps responding to settings without a page reload. Only the extension's own packaged script is injected.
 - **Host access to https://docs.google.com/spreadsheets/***: The content script must run on Google Sheets pages to read the position of the selection outline and draw the highlight.
 
 ## Remote code

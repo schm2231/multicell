@@ -6,8 +6,19 @@
 // translucent bands on top of the cell area.
 
 (() => {
-  if (window.__multicellLoaded) return;
-  window.__multicellLoaded = true;
+  // Skip if a working copy is already running in this world (e.g. injected
+  // twice). A copy left over from before an extension reload reports not alive.
+  if (typeof window.__multicellAlive === 'function' && window.__multicellAlive()) return;
+
+  // When the extension is reloaded or updated, Chrome leaves the old copy of
+  // this script running in open tabs, cut off from storage events. The
+  // background worker injects a fresh copy; each copy claims the page with a
+  // unique id, and an older copy that sees a newer claim (or loses its
+  // extension context) removes its overlay and stops.
+  const INSTANCE = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  document.documentElement.dataset.multicellInstance = INSTANCE;
+  for (const old of document.querySelectorAll('#multicell-overlay')) old.remove();
+  let dead = false;
 
   const DEFAULTS = {
     enabled: true,
@@ -124,8 +135,24 @@
     if (root) root.style.display = 'none';
   }
 
+  function isStale() {
+    if (dead) return true;
+    let contextGone = false;
+    try {
+      contextGone = typeof chrome !== 'undefined' && chrome.runtime && !chrome.runtime.id;
+    } catch (e) {
+      contextGone = true;
+    }
+    if (contextGone || document.documentElement.dataset.multicellInstance !== INSTANCE) {
+      teardown();
+      return true;
+    }
+    return false;
+  }
+
   function draw() {
     frame = 0;
+    if (isStale()) return;
     if (!settings.enabled) return hide();
     const area = cellArea();
     if (!area) return hide();
@@ -180,12 +207,29 @@
   document.addEventListener('mouseup', schedule, true);
   document.addEventListener('keyup', schedule, true);
 
-  // The grid container can be replaced (e.g. switching sheet tabs), so keep
-  // a light watch on the body until we have it, and re-check periodically.
-  setInterval(() => {
+  // The grid container can be replaced (e.g. switching sheet tabs), so
+  // re-check periodically. This also notices when this copy has gone stale.
+  const poll = setInterval(() => {
+    if (isStale()) return;
     const grid = document.getElementById('waffle-grid-container');
     if (grid && grid !== observedGrid) schedule();
   }, 1000);
+
+  window.__multicellAlive = () => !isStale();
+
+  function teardown() {
+    if (dead) return;
+    dead = true;
+    clearInterval(poll);
+    if (frame) cancelAnimationFrame(frame);
+    if (observer) observer.disconnect();
+    window.removeEventListener('scroll', schedule, true);
+    window.removeEventListener('resize', schedule);
+    document.removeEventListener('mouseup', schedule, true);
+    document.removeEventListener('keyup', schedule, true);
+    if (root) root.remove();
+    root = null;
+  }
 
   // ---- settings -----------------------------------------------------------
 
