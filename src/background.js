@@ -28,5 +28,20 @@ async function syncBadge() {
   const { enabled } = await chrome.storage.sync.get(DEFAULTS);
   updateBadge(enabled);
 }
+// After an install, update or reload, Sheets tabs that were already open are
+// still running the old content script, which no longer receives setting
+// changes. Inject the current one; it replaces the old copy's overlay.
+async function refreshOpenSheets() {
+  const tabs = await chrome.tabs.query({ url: 'https://docs.google.com/spreadsheets/*' });
+  for (const tab of tabs) {
+    chrome.scripting
+      .executeScript({ target: { tabId: tab.id }, files: ['src/content.js'] })
+      .catch(() => {}); // e.g. tab discarded or still loading
+  }
+}
+
 chrome.runtime.onStartup.addListener(syncBadge);
-chrome.runtime.onInstalled.addListener(syncBadge);
+chrome.runtime.onInstalled.addListener(() => {
+  syncBadge();
+  refreshOpenSheets();
+});
